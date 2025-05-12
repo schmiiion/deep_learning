@@ -2,12 +2,10 @@ import os.path
 import json
 import random
 from skimage.transform import resize
-import scipy.misc
+#import scipy.misc
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import List, Tuple
-
-from matplotlib.style.core import available
 
 
 # In this exercise task you will implement an image generator. Generator objects in python are defined as having a next function.
@@ -36,7 +34,13 @@ class ImageGenerator:
 
         self.epoch = 0
         self.image_paths = self.get_npy_paths()
-        self.available_paths = self.image_paths.copy()
+        if self.shuffle:
+            random.shuffle(self.image_paths)
+            self.available_paths = self.image_paths.copy()
+        else:
+            self.img_counter = 0
+
+
         self.labels = self.get_label_dict()
 
 
@@ -49,36 +53,48 @@ class ImageGenerator:
         img_list = []
         label_list = []
 
-        for _ in range(self.batch_size):
-            if len(self.available_paths) == 0:
-                image_path = random.choice(self.image_paths)
-                epoch_end = True
+        for img_idx in range(self.batch_size):
+            if self.shuffle:
+                if len(self.available_paths) == 0:
+                    image_path = random.choice(self.image_paths)
+                    epoch_end = True
+                else:
+                    image_path = random.choice(self.available_paths)
+                    self.available_paths.remove(image_path)
+
             else:
-                image_path = random.choice(self.available_paths)
-                self.available_paths.remove(image_path)
+                image_path = self.image_paths[self.img_counter]
+                new_counter = self.img_counter + 1
+                new_counter_capped = new_counter % len(self.image_paths)
+                if new_counter_capped == 0:
+                    self.epoch +=1
+                self.img_counter = new_counter_capped
 
             img_arr = self.load_npy_file(image_path)
             img_arr = resize(img_arr, self.image_size)
+            img_arr = self.augment(img_arr, self.rotation, self.mirroring)
             img_list.append(img_arr)
 
-            label_lookup = self.extract_integer(image_path)
-            label_list.append(self.labels[str(label_lookup)])
+            img_number_for_lookup = self.extract_label_from_filename(image_path)
+            label_as_int = self.labels[img_number_for_lookup]
+            label_list.append(label_as_int)
 
         if epoch_end:
             self.epoch += 1
+            if self.shuffle:
+                random.shuffle(self.image_paths)
 
         return np.stack(img_list, axis=0), np.stack(label_list, axis=0)
 
-    def augment(self,img):
+    def augment(self,img, rotation=False, mirroring=False):
         # this function takes a single image as an input and performs a random transformation
         # (mirroring and/or rotation) on it and outputs the transformed image
-
-        if self.rotation:
+        if rotation:
             if random.random() < 0.5:
                 k = random.randint(-4, 4)
                 img = np.rot90(img, k)
 
-        if self.mirroring:
+        if mirroring:
             if random.random() < 0.5:
                 img = np.flip(img, axis=1)
             if random.random() < 0.5:
@@ -90,21 +106,32 @@ class ImageGenerator:
         # return the current epoch number
         return self.epoch
 
-    def class_name(self, x):
+    def class_name(self, int_label):
         # This function returns the class name for a specific input
-        #TODO: implement class name function
-        print('------ class name invocation ------')
-        print('class_name', x)
-        print(type(x))
-        return
+        return self.class_dict[int_label]
 
     def show(self):
         # In order to verify that the generator creates batches as required, this functions calls next to get a
         # batch of images and labels and visualizes it.
-        #TODO: implement show method
-        img, label = self.next()
-        #HERE
-        pass
+        imgs, labels = self.next()
+
+        n = len(imgs)
+        cols = int(np.ceil(np.sqrt(n)))
+        rows = int(np.ceil(n / cols))
+
+        fig, axs = plt.subplots(rows, cols, figsize=(cols * 2, rows * 2))
+        axs = axs.ravel()  # Flatten for easy iteration
+
+        for ax in axs:
+            ax.axis('off')  # Hide axes for empty subplots
+
+        for i, (img, label) in enumerate(zip(imgs, labels)):
+            axs[i].imshow(img)
+            label_str = self.class_name(label)
+            axs[i].set_title(label_str, fontsize=9)
+
+        plt.tight_layout()
+        plt.show()
 
     def get_npy_paths(self):
         npy_paths = []
@@ -139,7 +166,7 @@ class ImageGenerator:
             return None
 
     @staticmethod
-    def extract_integer(file_path):
+    def extract_label_from_filename(file_path):
         filename = file_path.split('/')[-1]  # Get the filename without the path
         name = filename.split('.')[0]  # Split the filename from its extension
-        return int(name)  # Convert the name to an integer
+        return name  # Convert the name to an integer

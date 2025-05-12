@@ -12,16 +12,26 @@ from src_to_implement.generator import ImageGenerator
 # c.draw()
 # c.show()
 
+# c = pattern.Spectrum(500)
+# c.draw()
+# c.show()
+
 
 ig = ImageGenerator(
-    file_path='./data/exercise_data',
-    label_path='./data/Labels.json',
-    batch_size=5,
-    image_size=[64, 64]
+    file_path='./exercise_data',
+    label_path='./Labels.json',
+    batch_size=10,
+    image_size=[30, 30]
 )
 
-x,y = ig.next()
+ig2 = ImageGenerator(
+    file_path='./exercise_data',
+    label_path='./Labels.json',
+    batch_size=15,
+    image_size=[30, 30]
+)
 
-for i in range(x.shape[0]):
-    img = x[i]
-    Image.fromarray(img).show()
+x, y = ig.next()
+x2, y2 = ig2.next()
+
+print('al')

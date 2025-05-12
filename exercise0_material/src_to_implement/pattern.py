@@ -18,15 +18,12 @@ class Checker:
             second_row = np.hstack([square(single_tile_n, 1), square(single_tile_n, 0)])
             return np.vstack([first_row, second_row])
 
-
         if self.resolution % (2* self.tile_size) != 0:
-            print('Cant create checkers board from input params')
             return
 
         checker_tile_repetitions = int(self.resolution / (2 * self.tile_size))
         ct = checker_tile(self.tile_size)
         self.output = np.tile(ct, (checker_tile_repetitions, checker_tile_repetitions))
-        print(f'checker board ({self.output.shape}) created and stored')
         return self.output.copy()
 
 
@@ -60,16 +57,27 @@ class Circle:
         plt.show()
         return
 
-class Circle:
+class Spectrum:
 
     def __init__(self, resolution):
         self.resolution = resolution
         self.output = None
 
     def draw(self):
-        pass
+        r_channel_row = np.linspace(0, 1, self.resolution)
+        r_channel = np.tile(r_channel_row, (self.resolution, 1))
+
+        g_channel_row = np.linspace(0, 1, self.resolution)
+        g_channel_col = g_channel_row[:, np.newaxis]
+        g_channel = np.tile(g_channel_col, (1, self.resolution))
+
+        b_channel_row = np.linspace(1, 0, self.resolution)
+        b_channel = np.tile(b_channel_row, (self.resolution, 1))
+
+        self.output = np.stack((r_channel, g_channel, b_channel), axis=-1)
+        return self.output.copy()
 
     def show(self):
-        plt.imshow(self.output, cmap='gray')
+        plt.imshow(self.output)
         plt.show()
         return
