@@ -40,7 +40,6 @@ class ImageGenerator:
         else:
             self.img_counter = 0
 
-
         self.labels = self.get_label_dict()
 
 
@@ -91,7 +90,7 @@ class ImageGenerator:
         # (mirroring and/or rotation) on it and outputs the transformed image
         if rotation:
             if random.random() < 0.5:
-                k = random.randint(-4, 4)
+                k = random.randint(-3, 3)
                 img = np.rot90(img, k)
 
         if mirroring:

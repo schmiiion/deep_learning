@@ -5,7 +5,7 @@ class FullyConnected(BaseLayer):
     def __init__(self, input_size, output_size):
         super().__init__()
         self.trainable = True
-        self.weights = np.random.rand(output_size, input_size)
+        self.weights = np.random.rand(input_size + 1, output_size)
         self._optimizer = None
         self.input_tensor = None
         self.gradient_weights = None
@@ -18,37 +18,47 @@ class FullyConnected(BaseLayer):
     def optimizer(self, value):
         self._optimizer = value
 
-    def forward(self, input_tensor):
-        """
-        :param input_tensor of shape (input_size, batch_size)
-        :return: output_tensor of shape (output_size, batch_size)
-        """
-        self.input_tensor = input_tensor
-        return self.weights @ input_tensor
-
-    def backward(self, error_tensor):
-        """
-        Returns gradient wrt X (input) -> derivative of Loss wrt to x
-        Updates weights wrt to gradient of weights
-        """
-        # weights: (output_size x input_size);
-        # error_tensor: (output_size x 1)
-        # -> propagate vector back
-        error_tensor_previous_layer = self.weights.T @ error_tensor
-
-        # outer product
-        grad_wrt_weights = error_tensor @ self.input_tensor.T
-        self.gradient_weights = grad_wrt_weights
-
-        if self.trainable and self._optimizer is not None:
-            self.weights = self._optimizer.calculate_update(self.weights, grad_wrt_weights)
-
-        return error_tensor_previous_layer
-
     @property
     def gradient_weights(self):
-        return self.gradient_weights
+        return self._gradient_weights
 
     @gradient_weights.setter
     def gradient_weights(self, value):
         self._gradient_weights = value
+
+    def forward(self, input_tensor):
+        """
+        :param input_tensor of shape (batch_size, input_size)
+        :return: Tensor with shape (batch_size, output_size)
+        """
+        self.input_tensor = input_tensor
+        #add bias
+        batch_size = input_tensor.shape[0]
+        bias_column = np.ones((batch_size, 1))
+        input_with_bias = np.hstack((input_tensor, bias_column))
+        #compute output
+        return input_with_bias @ self.weights
+
+    def backward(self, error_tensor):
+        """
+        Returns gradient wrt X (input) -> derivative of Loss wrt to x
+        Updates weights wrt to gradient of weights and stores the gradient
+        """
+        #calculate gradient wrt input (exclude bias)
+        gradient_input = error_tensor @ self.weights.T
+        gradient_input = gradient_input[:, :-1]
+
+        #calculate gradient wrt weights (including bias)
+        batch_size = self.input_tensor.shape[0]
+        bias_column = np.ones((batch_size, 1))
+        input_with_bias = np.hstack((self.input_tensor, bias_column))
+        #TODO: store input with bias so that the adding is redundant here
+
+        self._gradient_weights = input_with_bias.T @ error_tensor
+
+        #update weights if optimizer is set
+        if self.trainable and self.optimizer is not None:
+            self.weights = self.optimizer.calculate_update(self.weights, self.gradient_weights)
+
+        return gradient_input
+

@@ -2,7 +2,7 @@ import unittest
 from Layers import *
 from Optimization import *
 import numpy as np
-#import NeuralNetwork
+import NeuralNetwork
 import matplotlib.pyplot as plt
 import tabulate
 import argparse
@@ -527,8 +527,7 @@ if __name__ == '__main__':
     if sys.argv[-1] == "Bonus":
         loader = unittest.TestLoader()
         bonus_points = {}
-        #tests = [TestCrossEntropyLoss, TestFullyConnected1, TestReLU, TestOptimizers1, TestNeuralNetwork1, TestSoftMax]
-        tests = [TestOptimizers1]
+        tests = [TestCrossEntropyLoss, TestFullyConnected1, TestReLU, TestOptimizers1, TestNeuralNetwork1, TestSoftMax]
         percentages = [10, 45, 5, 5, 25, 10]
         total_points = 0
         for t, p in zip(tests, percentages):
